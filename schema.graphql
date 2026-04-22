@@ -1,0 +1,864 @@
+# Aave V3 Protocol Schema
+
+enum PriceOracleAssetType {
+  Simple
+  Composite
+}
+
+enum PriceOracleAssetPlatform {
+  Simple
+  Uniswap
+}
+
+enum Action {
+  Supply
+  Deposit
+  RedeemUnderlying
+  Repay
+  Borrow
+  SwapBorrowRate
+  Swap
+  UsageAsCollateral
+  RebalanceStableBorrowRate
+  LiquidationCall
+  UserEModeSet
+  ClaimRewardsCall
+}
+
+type Protocol {
+  id: ID!
+  pools: [Pool!]! @derivedFrom(field: "protocol")
+}
+
+# contract address → pool mapping (lookup service entity)
+type ContractToPoolMapping {
+  id: ID!
+  pool: Pool!
+}
+
+type PoolAddressesProvider {
+  id: ID!
+  address: String!
+  pool: Pool
+}
+
+type PoolAddressesProviderRegistry {
+  id: ID!
+}
+
+type Pool {
+  id: ID!
+  addressProviderId: BigInt!
+  protocol: Protocol!
+  pool: String
+  poolCollateralManager: String
+  poolConfiguratorImpl: String
+  poolImpl: String
+  poolDataProviderImpl: String
+  poolConfigurator: String
+  proxyPriceProvider: String
+  lastUpdateTimestamp: Int!
+  bridgeProtocolFee: BigInt
+  flashloanPremiumTotal: BigInt
+  flashloanPremiumToProtocol: BigInt
+  active: Boolean!
+  paused: Boolean!
+  # V2-only fields
+  lendingRateOracle: String
+  configurationAdmin: String
+  emergencyAdmin: String
+  ethereumAddress: String
+  reserves: [Reserve!]! @derivedFrom(field: "pool")
+  supplyHistory: [Supply!]! @derivedFrom(field: "pool")
+  depositHistory: [Deposit!]! @derivedFrom(field: "pool")
+  mintUnbackedHistory: [MintUnbacked!]! @derivedFrom(field: "pool")
+  backUnbackedHistory: [BackUnbacked!]! @derivedFrom(field: "pool")
+  mintedToTreasuryHistory: [MintedToTreasury!]! @derivedFrom(field: "pool")
+  isolationModeTotalDebtUpdatedHistory: [IsolationModeTotalDebtUpdated!]! @derivedFrom(field: "pool")
+  redeemUnderlyingHistory: [RedeemUnderlying!]! @derivedFrom(field: "pool")
+  borrowHistory: [Borrow!]! @derivedFrom(field: "pool")
+  swapHistory: [SwapBorrowRate!]! @derivedFrom(field: "pool")
+  usageAsCollateralHistory: [UsageAsCollateral!]! @derivedFrom(field: "pool")
+  rebalanceStableBorrowRateHistory: [RebalanceStableBorrowRate!]! @derivedFrom(field: "pool")
+  repayHistory: [Repay!]! @derivedFrom(field: "pool")
+  flashLoanHistory: [FlashLoan!]! @derivedFrom(field: "pool")
+  liquidationCallHistory: [LiquidationCall!]! @derivedFrom(field: "pool")
+  configurationHistory: [PoolConfigurationHistoryItem!]! @derivedFrom(field: "pool")
+}
+
+type PriceHistoryItem {
+  id: ID!
+  asset: PriceOracleAsset!
+  price: BigInt!
+  timestamp: Int!
+}
+
+type UsdEthPriceHistoryItem {
+  id: ID!
+  oracle: PriceOracle!
+  price: BigInt!
+  timestamp: Int!
+}
+
+type ChainlinkAggregator {
+  id: ID!
+  oracleAsset: PriceOracleAsset!
+}
+
+type PriceOracleAsset {
+  id: ID!
+  oracle: PriceOracle!
+  priceInEth: BigInt!
+  priceSource: String!
+  isFallbackRequired: Boolean!
+  type: PriceOracleAssetType!
+  platform: PriceOracleAssetPlatform!
+  lastUpdateTimestamp: Int!
+  fromChainlinkSourcesRegistry: Boolean!
+  priceHistory: [PriceHistoryItem!]! @derivedFrom(field: "asset")
+}
+
+type PriceOracle {
+  id: ID!
+  proxyPriceProvider: String!
+  usdPriceEth: BigInt!
+  usdPriceEthMainSource: String!
+  usdPriceEthFallbackRequired: Boolean!
+  fallbackPriceOracle: String!
+  lastUpdateTimestamp: Int!
+  version: Int!
+  baseCurrency: String!
+  baseCurrencyUnit: BigInt!
+  tokens: [PriceOracleAsset!]! @derivedFrom(field: "oracle")
+  usdPriceEthHistory: [UsdEthPriceHistoryItem!]! @derivedFrom(field: "oracle")
+}
+
+# Represents A/VariableDebt/StableDebt tokens
+type SubToken {
+  id: ID!
+  pool: Pool!
+  tokenContractImpl: String
+  underlyingAssetAddress: String!
+  underlyingAssetDecimals: Int!
+  rewards: [Reward!]! @derivedFrom(field: "asset")
+}
+
+type Referrer {
+  id: ID!
+  supplies: [Supply!]! @derivedFrom(field: "referrer")
+  deposits: [Deposit!]! @derivedFrom(field: "referrer")
+  borrows: [Borrow!]! @derivedFrom(field: "referrer")
+}
+
+type Supply {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  caller: User!
+  reserve: Reserve!
+  referrer: Referrer
+  userReserve: UserReserve!
+  amount: BigInt!
+  timestamp: Int!
+  assetPriceUSD: BigDecimal!
+}
+
+type Deposit {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  caller: User!
+  reserve: Reserve!
+  referrer: Referrer
+  userReserve: UserReserve!
+  amount: BigInt!
+  timestamp: Int!
+  assetPriceUSD: BigDecimal!
+}
+
+type RedeemUnderlying {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  to: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  amount: BigInt!
+  timestamp: Int!
+  assetPriceUSD: BigDecimal!
+}
+
+type Borrow {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  caller: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  amount: BigInt!
+  borrowRate: BigInt!
+  borrowRateMode: Int!
+  referrer: Referrer
+  timestamp: Int!
+  stableTokenDebt: BigInt!
+  variableTokenDebt: BigInt!
+  assetPriceUSD: BigDecimal!
+}
+
+type SwapBorrowRate {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  borrowRateModeFrom: Int!
+  borrowRateModeTo: Int!
+  stableBorrowRate: BigInt!
+  variableBorrowRate: BigInt!
+  timestamp: Int!
+}
+
+type UsageAsCollateral {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  fromState: Boolean!
+  toState: Boolean!
+  timestamp: Int!
+}
+
+type RebalanceStableBorrowRate {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  borrowRateFrom: BigInt!
+  borrowRateTo: BigInt!
+  timestamp: Int!
+}
+
+type Repay {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  repayer: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  amount: BigInt!
+  timestamp: Int!
+  useATokens: Boolean
+  assetPriceUSD: BigDecimal!
+}
+
+type IsolationModeTotalDebtUpdated {
+  id: ID!
+  pool: Pool!
+  reserve: Reserve!
+  isolatedDebt: BigInt!
+  timestamp: Int!
+}
+
+type FlashLoan {
+  id: ID!
+  pool: Pool!
+  reserve: Reserve!
+  target: String!
+  amount: BigInt!
+  totalFee: BigInt!
+  lpFee: BigInt
+  protocolFee: BigInt
+  initiator: User!
+  timestamp: Int!
+  assetPriceUSD: BigDecimal!
+}
+
+type LiquidationCall {
+  id: ID!
+  txHash: String!
+  action: Action!
+  pool: Pool!
+  user: User!
+  collateralReserve: Reserve!
+  collateralUserReserve: UserReserve!
+  collateralAmount: BigInt!
+  principalReserve: Reserve!
+  principalUserReserve: UserReserve!
+  principalAmount: BigInt!
+  liquidator: String!
+  timestamp: Int!
+  collateralAssetPriceUSD: BigDecimal!
+  borrowAssetPriceUSD: BigDecimal!
+}
+
+type MintUnbacked {
+  id: ID!
+  pool: Pool!
+  user: User!
+  caller: User!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  amount: BigInt!
+  referral: Int!
+  timestamp: Int!
+}
+
+type BackUnbacked {
+  id: ID!
+  pool: Pool!
+  reserve: Reserve!
+  userReserve: UserReserve!
+  backer: User!
+  amount: BigInt!
+  fee: BigInt!
+  lpFee: BigInt!
+  protocolFee: BigInt!
+  timestamp: Int!
+}
+
+type MintedToTreasury {
+  id: ID!
+  pool: Pool!
+  reserve: Reserve!
+  amount: BigInt!
+  timestamp: Int!
+}
+
+type UserEModeSet {
+  id: ID!
+  txHash: String!
+  action: Action!
+  user: User!
+  timestamp: Int!
+  categoryId: Int!
+}
+
+type ReserveConfigurationHistoryItem {
+  id: ID!
+  reserve: Reserve!
+  usageAsCollateralEnabled: Boolean!
+  borrowingEnabled: Boolean!
+  stableBorrowRateEnabled: Boolean!
+  isActive: Boolean!
+  isFrozen: Boolean!
+  reserveInterestRateStrategy: String!
+  baseLTVasCollateral: BigInt!
+  reserveLiquidationThreshold: BigInt!
+  reserveLiquidationBonus: BigInt!
+  timestamp: Int!
+}
+
+type ReserveParamsHistoryItem {
+  id: ID!
+  reserve: Reserve!
+  variableBorrowRate: BigInt!
+  variableBorrowIndex: BigInt!
+  utilizationRate: BigDecimal!
+  stableBorrowRate: BigInt!
+  averageStableBorrowRate: BigInt!
+  liquidityIndex: BigInt!
+  liquidityRate: BigInt!
+  totalLiquidity: BigInt!
+  totalATokenSupply: BigInt!
+  totalLiquidityAsCollateral: BigInt!
+  availableLiquidity: BigInt!
+  priceInEth: BigInt!
+  priceInUsd: BigDecimal!
+  timestamp: Int!
+  accruedToTreasury: BigInt!
+  totalScaledVariableDebt: BigInt!
+  totalCurrentVariableDebt: BigInt!
+  totalPrincipalStableDebt: BigInt!
+  lifetimePrincipalStableDebt: BigInt!
+  lifetimeScaledVariableDebt: BigInt!
+  lifetimeCurrentVariableDebt: BigInt!
+  lifetimeLiquidity: BigInt!
+  lifetimeRepayments: BigInt!
+  lifetimeWithdrawals: BigInt!
+  lifetimeBorrows: BigInt!
+  lifetimeLiquidated: BigInt!
+  lifetimeFlashLoans: BigInt!
+  lifetimeFlashLoanPremium: BigInt!
+  lifetimeFlashLoanLPPremium: BigInt!
+  lifetimeFlashLoanProtocolPremium: BigInt!
+  lifetimeReserveFactorAccrued: BigInt!
+  lifetimePortalLPFee: BigInt!
+  lifetimePortalProtocolFee: BigInt!
+  lifetimeSuppliersInterestEarned: BigInt!
+}
+
+type RewardFeedOracle {
+  id: ID!
+  rewardFeedAddress: String!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type Reward {
+  id: ID!
+  rewardToken: String!
+  asset: SubToken!
+  rewardTokenDecimals: Int!
+  rewardFeedOracle: RewardFeedOracle!
+  rewardTokenSymbol: String!
+  index: BigInt!
+  precision: Int!
+  distributionEnd: Int!
+  emissionsPerSecond: BigInt!
+  rewardsController: RewardsController!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type UserReward {
+  id: ID!
+  user: User!
+  index: BigInt!
+  reward: Reward!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type RewardsController {
+  id: ID!
+  rewards: [Reward!]! @derivedFrom(field: "rewardsController")
+  rewardedActions: [RewardedAction!]! @derivedFrom(field: "rewardsController")
+  claimIncentives: [ClaimRewardsCall!]! @derivedFrom(field: "rewardsController")
+}
+
+type RewardedAction {
+  id: ID!
+  rewardsController: RewardsController!
+  user: User!
+  amount: BigInt!
+}
+
+type ClaimRewardsCall {
+  id: ID!
+  txHash: String!
+  user: User!
+  to: User!
+  amount: BigInt!
+  caller: User!
+  rewardsController: RewardsController!
+  action: Action!
+  timestamp: Int!
+}
+
+type EModeCategory {
+  id: ID!
+  ltv: BigInt!
+  liquidationThreshold: BigInt!
+  liquidationBonus: BigInt!
+  oracle: String!
+  label: String!
+  assets: [EModeCategoryConfig!]! @derivedFrom(field: "category")
+}
+
+type EModeCategoryConfig {
+  id: ID!
+  category: EModeCategory!
+  asset: String!
+  collateral: Boolean!
+  borrowable: Boolean!
+}
+
+type MapAssetPool {
+  id: ID!
+  pool: String!
+  underlyingAsset: String!
+}
+
+type Reserve {
+  id: ID!
+  underlyingAsset: String! @index
+  pool: Pool!
+  symbol: String!
+  name: String!
+  decimals: Int!
+  usageAsCollateralEnabled: Boolean!
+  borrowingEnabled: Boolean!
+  stableBorrowRateEnabled: Boolean!
+  isActive: Boolean!
+  isFrozen: Boolean!
+  price: PriceOracleAsset!
+  reserveInterestRateStrategy: String!
+  optimalUtilisationRate: BigInt!
+  variableRateSlope1: BigInt!
+  variableRateSlope2: BigInt!
+  stableRateSlope1: BigInt!
+  stableRateSlope2: BigInt!
+  baseVariableBorrowRate: BigInt!
+  baseLTVasCollateral: BigInt!
+  reserveLiquidationThreshold: BigInt!
+  reserveLiquidationBonus: BigInt!
+  utilizationRate: BigDecimal!
+  totalLiquidity: BigInt!
+  totalATokenSupply: BigInt!
+  totalLiquidityAsCollateral: BigInt!
+  availableLiquidity: BigInt!
+  totalPrincipalStableDebt: BigInt!
+  totalScaledVariableDebt: BigInt!
+  totalCurrentVariableDebt: BigInt!
+  totalSupplies: BigInt!
+  liquidityRate: BigInt!
+  accruedToTreasury: BigInt!
+  averageStableRate: BigInt!
+  variableBorrowRate: BigInt!
+  stableBorrowRate: BigInt!
+  liquidityIndex: BigInt!
+  variableBorrowIndex: BigInt!
+  aToken: SubToken!
+  vToken: SubToken!
+  sToken: SubToken!
+  reserveFactor: BigInt!
+  lastUpdateTimestamp: Int!
+  stableDebtLastUpdateTimestamp: Int!
+  isPaused: Boolean!
+  isDropped: Boolean!
+  borrowCap: BigInt
+  supplyCap: BigInt
+  debtCeiling: BigInt
+  unbackedMintCap: BigInt
+  liquidationProtocolFee: BigInt
+  borrowableInIsolation: Boolean
+  eMode: EModeCategory
+  siloedBorrowing: Boolean!
+  lifetimeLiquidity: BigInt!
+  lifetimePrincipalStableDebt: BigInt!
+  lifetimeScaledVariableDebt: BigInt!
+  lifetimeCurrentVariableDebt: BigInt!
+  lifetimeRepayments: BigInt!
+  lifetimeWithdrawals: BigInt!
+  lifetimeBorrows: BigInt!
+  lifetimeLiquidated: BigInt!
+  lifetimeFlashLoans: BigInt!
+  lifetimeFlashLoanPremium: BigInt!
+  lifetimeFlashLoanLPPremium: BigInt!
+  lifetimeFlashLoanProtocolPremium: BigInt!
+  lifetimePortalLPFee: BigInt!
+  lifetimePortalProtocolFee: BigInt!
+  lifetimeSuppliersInterestEarned: BigInt!
+  lifetimeReserveFactorAccrued: BigInt!
+  # V2 incentives fields
+  aEmissionPerSecond: BigInt
+  vEmissionPerSecond: BigInt
+  sEmissionPerSecond: BigInt
+  aTokenIncentivesIndex: BigInt
+  vTokenIncentivesIndex: BigInt
+  sTokenIncentivesIndex: BigInt
+  aIncentivesLastUpdateTimestamp: Int
+  vIncentivesLastUpdateTimestamp: Int
+  sIncentivesLastUpdateTimestamp: Int
+  userReserves: [UserReserve!]! @derivedFrom(field: "reserve")
+  supplyHistory: [Supply!]! @derivedFrom(field: "reserve")
+  depositHistory: [Deposit!]! @derivedFrom(field: "reserve")
+  mintUnbackedHistory: [MintUnbacked!]! @derivedFrom(field: "reserve")
+  backUnbackedHistory: [BackUnbacked!]! @derivedFrom(field: "reserve")
+  mintedToTreasuryHistory: [MintedToTreasury!]! @derivedFrom(field: "reserve")
+  isolationModeTotalDebtUpdatedHistory: [IsolationModeTotalDebtUpdated!]! @derivedFrom(field: "reserve")
+  redeemUnderlyingHistory: [RedeemUnderlying!]! @derivedFrom(field: "reserve")
+  borrowHistory: [Borrow!]! @derivedFrom(field: "reserve")
+  usageAsCollateralHistory: [UsageAsCollateral!]! @derivedFrom(field: "reserve")
+  swapHistory: [SwapBorrowRate!]! @derivedFrom(field: "reserve")
+  rebalanceStableBorrowRateHistory: [RebalanceStableBorrowRate!]! @derivedFrom(field: "reserve")
+  repayHistory: [Repay!]! @derivedFrom(field: "reserve")
+  flashLoanHistory: [FlashLoan!]! @derivedFrom(field: "reserve")
+  liquidationCallHistory: [LiquidationCall!]! @derivedFrom(field: "collateralReserve")
+  paramsHistory: [ReserveParamsHistoryItem!]! @derivedFrom(field: "reserve")
+  configurationHistory: [ReserveConfigurationHistoryItem!]! @derivedFrom(field: "reserve")
+  supplies: [Supply!]! @derivedFrom(field: "reserve")
+}
+
+type ATokenBalanceHistoryItem {
+  id: ID!
+  userReserve: UserReserve!
+  timestamp: Int!
+  scaledATokenBalance: BigInt!
+  currentATokenBalance: BigInt!
+  index: BigInt!
+}
+
+type VTokenBalanceHistoryItem {
+  id: ID!
+  userReserve: UserReserve!
+  scaledVariableDebt: BigInt!
+  currentVariableDebt: BigInt!
+  timestamp: Int!
+  index: BigInt!
+}
+
+type STokenBalanceHistoryItem {
+  id: ID!
+  userReserve: UserReserve!
+  principalStableDebt: BigInt!
+  currentStableDebt: BigInt!
+  timestamp: Int!
+  avgStableBorrowRate: BigInt!
+}
+
+type StableTokenDelegatedAllowance {
+  id: ID!
+  fromUser: User!
+  toUser: User!
+  amountAllowed: BigInt!
+  userReserve: UserReserve!
+}
+
+type VariableTokenDelegatedAllowance {
+  id: ID!
+  fromUser: User!
+  toUser: User!
+  amountAllowed: BigInt!
+  userReserve: UserReserve!
+}
+
+type UserReserve {
+  id: ID!
+  pool: Pool!
+  reserve: Reserve!
+  user: User!
+  usageAsCollateralEnabledOnUser: Boolean!
+  scaledATokenBalance: BigInt!
+  currentATokenBalance: BigInt!
+  scaledVariableDebt: BigInt!
+  currentVariableDebt: BigInt!
+  principalStableDebt: BigInt!
+  currentStableDebt: BigInt!
+  currentTotalDebt: BigInt!
+  stableBorrowRate: BigInt!
+  oldStableBorrowRate: BigInt!
+  liquidityRate: BigInt!
+  stableBorrowLastUpdateTimestamp: Int!
+  variableBorrowIndex: BigInt!
+  lastUpdateTimestamp: Int!
+  # V2 incentives fields
+  aTokenincentivesUserIndex: BigInt
+  vTokenincentivesUserIndex: BigInt
+  sTokenincentivesUserIndex: BigInt
+  aIncentivesLastUpdateTimestamp: Int
+  vIncentivesLastUpdateTimestamp: Int
+  sIncentivesLastUpdateTimestamp: Int
+  stableTokenDelegatedAllowances: [StableTokenDelegatedAllowance!]! @derivedFrom(field: "userReserve")
+  variableTokenDelegatedAllowances: [VariableTokenDelegatedAllowance!]! @derivedFrom(field: "userReserve")
+  aTokenBalanceHistory: [ATokenBalanceHistoryItem!]! @derivedFrom(field: "userReserve")
+  vTokenBalanceHistory: [VTokenBalanceHistoryItem!]! @derivedFrom(field: "userReserve")
+  sTokenBalanceHistory: [STokenBalanceHistoryItem!]! @derivedFrom(field: "userReserve")
+  usageAsCollateralHistory: [UsageAsCollateral!]! @derivedFrom(field: "userReserve")
+  supplyHistory: [Supply!]! @derivedFrom(field: "userReserve")
+  depositHistory: [Deposit!]! @derivedFrom(field: "userReserve")
+  mintUnbackedHistory: [MintUnbacked!]! @derivedFrom(field: "userReserve")
+  backUnbackedHistory: [BackUnbacked!]! @derivedFrom(field: "userReserve")
+  redeemUnderlyingHistory: [RedeemUnderlying!]! @derivedFrom(field: "userReserve")
+  borrowHistory: [Borrow!]! @derivedFrom(field: "userReserve")
+  swapHistory: [SwapBorrowRate!]! @derivedFrom(field: "userReserve")
+  rebalanceStableBorrowRateHistory: [RebalanceStableBorrowRate!]! @derivedFrom(field: "userReserve")
+  repayHistory: [Repay!]! @derivedFrom(field: "userReserve")
+  liquidationCallHistory: [LiquidationCall!]! @derivedFrom(field: "collateralUserReserve")
+}
+
+type User {
+  id: ID!
+  borrowedReservesCount: Int!
+  unclaimedRewards: BigInt!
+  lifetimeRewards: BigInt!
+  rewardsLastUpdated: Int!
+  eModeCategoryId: EModeCategory
+  rewards: [UserReward!]! @derivedFrom(field: "user")
+  reserves: [UserReserve!]! @derivedFrom(field: "user")
+  supplyHistory: [Supply!]! @derivedFrom(field: "user")
+  depositHistory: [Deposit!]! @derivedFrom(field: "user")
+  mintUnbackedHistory: [MintUnbacked!]! @derivedFrom(field: "user")
+  backUnbackedHistory: [BackUnbacked!]! @derivedFrom(field: "backer")
+  userEmodeSetHistory: [UserEModeSet!]! @derivedFrom(field: "user")
+  redeemUnderlyingHistory: [RedeemUnderlying!]! @derivedFrom(field: "user")
+  usageAsCollateralHistory: [UsageAsCollateral!]! @derivedFrom(field: "user")
+  borrowHistory: [Borrow!]! @derivedFrom(field: "user")
+  swapHistory: [SwapBorrowRate!]! @derivedFrom(field: "user")
+  rebalanceStableBorrowRateHistory: [RebalanceStableBorrowRate!]! @derivedFrom(field: "user")
+  repayHistory: [Repay!]! @derivedFrom(field: "user")
+  liquidationCallHistory: [LiquidationCall!]! @derivedFrom(field: "user")
+  rewardedActions: [RewardedAction!]! @derivedFrom(field: "user")
+  claimRewards: [ClaimRewardsCall!]! @derivedFrom(field: "user")
+}
+
+type SwapHistory {
+  id: ID!
+  fromAsset: String!
+  toAsset: String!
+  fromAmount: BigInt!
+  receivedAmount: BigInt!
+  swapType: String!
+}
+
+# ─── GHO Entities ─────────────────────────────────────────────────────────────
+
+type Facilitator {
+  id: ID!
+  bucketLevel: BigInt!
+  bucketCapacity: BigInt!
+  label: String!
+  lifetimeFeesDistributedToTreasury: BigInt!
+  facilitatorLevelHistory: [FacilitatorLevelUpdated!]! @derivedFrom(field: "facilitator")
+  facilitatorCapacityHistory: [FacilitatorCapacityUpdated!]! @derivedFrom(field: "facilitator")
+  treasuryDistributionHistory: [FacilitatorTreasuryDistribution!]! @derivedFrom(field: "facilitator")
+  treasuryUpdateHistory: [FacilitatorTreasuryUpdated!]! @derivedFrom(field: "facilitator")
+}
+
+type FacilitatorLevelUpdated {
+  id: ID!
+  txHash: String!
+  facilitator: Facilitator!
+  oldBucketLevel: BigInt!
+  newBucketLevel: BigInt!
+}
+
+type FacilitatorCapacityUpdated {
+  id: ID!
+  txHash: String!
+  facilitator: Facilitator!
+  oldBucketCapacity: BigInt!
+  newBucketCapacity: BigInt!
+}
+
+type FacilitatorTreasuryDistribution {
+  id: ID!
+  txHash: String!
+  facilitator: Facilitator!
+  treasury: String!
+  amount: BigInt!
+  newLifetimeFeesDistributedToTreasury: BigInt!
+}
+
+type FacilitatorTreasuryUpdated {
+  id: ID!
+  txHash: String!
+  facilitator: Facilitator!
+  previousTreasury: String!
+  newTreasury: String!
+}
+
+type GhoFlashMinter {
+  id: ID!
+  facilitator: Facilitator!
+  fee: BigInt!
+  maxFee: BigInt!
+  ghoFlashMintHistory: [GhoFlashMint!]! @derivedFrom(field: "ghoFlashMinter")
+  feeUpdates: [GhoFlashMinterFeeUpdate!]! @derivedFrom(field: "ghoFlashMinter")
+}
+
+type GhoFlashMint {
+  id: ID!
+  ghoFlashMinter: GhoFlashMinter!
+  receiver: String!
+  initiator: String!
+  amount: BigInt!
+  fee: BigInt!
+  timestamp: Int!
+}
+
+type GhoFlashMinterFeeUpdate {
+  id: ID!
+  txHash: String!
+  ghoFlashMinter: GhoFlashMinter!
+  oldFee: BigInt!
+  newFee: BigInt!
+}
+
+type GhoDiscount {
+  id: ID!
+  discountToken: String!
+  discountRate: BigInt!
+  ghoDiscountedPerDiscountToken: BigInt!
+  minDebtTokenBalance: BigInt!
+  minDiscountTokenBalance: BigInt!
+  ghoDiscountHistoryItems: [GhoDiscountHistoryItem!]! @derivedFrom(field: "ghoDiscount")
+  discountTokenUpdates: [GhoDiscountTokenUpdate!]! @derivedFrom(field: "ghoDiscount")
+}
+
+type GhoDiscountHistoryItem {
+  id: ID!
+  txHash: String!
+  ghoDiscount: GhoDiscount!
+  oldGhoDiscountStrategy: String!
+  newGhoDiscountStrategy: String!
+  newDiscountRate: BigInt!
+  newGhoDiscountedPerDiscountToken: BigInt!
+  newMinDebtTokenBalance: BigInt!
+  newMinDiscountTokenBalance: BigInt!
+}
+
+type GhoDiscountTokenUpdate {
+  id: ID!
+  txHash: String!
+  ghoDiscount: GhoDiscount!
+  oldDiscountToken: String!
+  newDiscountToken: String!
+}
+
+# ─── V2-specific Entities ─────────────────────────────────────────────────────
+
+type PoolConfigurationHistoryItem {
+  id: ID!
+  active: Boolean
+  pool: Pool!
+  lendingPool: String
+  lendingPoolCollateralManager: String
+  lendingPoolConfiguratorImpl: String
+  lendingPoolImpl: String
+  lendingPoolConfigurator: String
+  proxyPriceProvider: String
+  lendingRateOracle: String
+  configurationAdmin: String
+  timestamp: Int!
+}
+
+type ChainlinkENS {
+  id: ID!
+  aggregatorAddress: String!
+  underlyingAddress: String!
+  symbol: String!
+}
+
+type IncentivesController {
+  id: ID!
+  rewardToken: String!
+  rewardTokenDecimals: Int!
+  rewardTokenSymbol: String!
+  precision: Int!
+  emissionEndTimestamp: Int!
+  incentivizedActions: [IncentivizedAction!]! @derivedFrom(field: "incentivesController")
+  claimIncentives: [ClaimIncentiveCall!]! @derivedFrom(field: "incentivesController")
+}
+
+type IncentivizedAction {
+  id: ID!
+  incentivesController: IncentivesController!
+  user: User!
+  amount: BigInt!
+}
+
+type ClaimIncentiveCall {
+  id: ID!
+  incentivesController: IncentivesController!
+  user: User!
+  amount: BigInt!
+}

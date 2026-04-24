@@ -253,7 +253,7 @@ chains:
   # Includes mainnet-v3, mainnetlido-v3, mainnetetherfi-v3 instances
   - id: 1
     start_block: 11275900
-    end_block: 11276900
+    end_block: 11286900
     contracts:
       - name: PoolAddressesProviderRegistry
         address:
